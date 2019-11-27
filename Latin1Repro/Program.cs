@@ -65,8 +65,9 @@ namespace Latin1Repro
                 {
                     var encoderRes = CompareEncodingEncoder(enc, str);
                     var decoderRes = CompareEncodingDecoder(enc, str);
+                    var decoderConvertRes = CompareEncodingDecoderConvert(enc, str);
 
-                    if (encoderRes.Success && decoderRes.Success) continue;
+                    if (encoderRes.Success && decoderRes.Success && decoderConvertRes.Success) continue;
 
                     if (first)
                     {
@@ -83,6 +84,11 @@ namespace Latin1Repro
                     if (!decoderRes.Success)
                     {
                         Console.WriteLine($"\t{decoderRes.Message}");
+                    }
+
+                    if (!decoderConvertRes.Success)
+                    {
+                        Console.WriteLine($"\t{decoderConvertRes.Message}");
                     }
                 }
             }
@@ -132,6 +138,54 @@ namespace Latin1Repro
                 var encoderAsStr = encoding.GetString(encoderBytes.ToArray());
 
                 return (false, $@"Encoding failure for stride = {stride} - {encodingBytes.Length}:""{encodingAsStr}"" vs {encoderBytes.Count}:""{encoderAsStr}""");
+            }
+
+            return (true, null);
+        }
+
+        static (bool Success, string Message) CompareEncodingDecoderConvert(Encoding encoding, string text)
+        {
+            var encodingBytes = encoding.GetBytes(text);
+            var encodingStr = encoding.GetString(encodingBytes);
+
+            var decoder = encoding.GetDecoder();
+
+            for (var buff = encoding.GetMaxCharCount(1); buff <= encodingBytes.Length; buff++)
+            {
+                var sourceSpan = encodingBytes.AsSpan();
+
+                var destSpan = new char[buff].AsSpan();
+
+                var decodedChars = new List<char>();
+
+                // write everything in sourceSpan
+                while (true)
+                {
+                    decoder.Convert(sourceSpan, destSpan, false, out var consumedBytes, out var producedChars, out var complete);
+                    decodedChars.AddRange(destSpan.Slice(0, producedChars).ToArray());
+
+                    sourceSpan = sourceSpan.Slice(consumedBytes);
+
+                    if (complete) break;
+                }
+
+                // now flush
+                while (true)
+                {
+                    decoder.Convert(ReadOnlySpan<byte>.Empty, destSpan, true, out var consumedBytes, out var producedChars, out var complete);
+                    decodedChars.AddRange(destSpan.Slice(0, producedChars).ToArray());
+
+                    sourceSpan = sourceSpan.Slice(consumedBytes);
+
+                    if (complete) break;
+                }
+
+                var decoderStr = new string(decodedChars.ToArray());
+
+                if(decoderStr != encodingStr)
+                {
+                    return (false, $@"Decoding Convert failure - {encodingStr.Length}:""{encodingStr}"" vs {decoderStr.Length}:""{decoderStr}""");
+                }
             }
 
             return (true, null);
