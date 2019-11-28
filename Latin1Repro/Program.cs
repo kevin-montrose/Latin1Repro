@@ -64,86 +64,81 @@ namespace Latin1Repro
                 foreach (var str in naughtyStrings)
                 {
                     var encoderRes = CompareEncodingEncoder(enc, str);
-                    var encoderConvertRes = CompareEncodingEncoderConvert(enc, str);
+                    PrintOnFailure(encInfo, encoderRes, ref first);
+
                     var decoderRes = CompareEncodingDecoder(enc, str);
-                    var decoderConvertRes = CompareEncodingDecoderConvert(enc, str);
+                    PrintOnFailure(encInfo, decoderRes, ref first);
 
-                    if (encoderRes.Success && encoderConvertRes.Success && decoderRes.Success && decoderConvertRes.Success) continue;
-
-                    if (first)
+                    for(var destBuffSize = enc.GetMaxByteCount(1); destBuffSize <= enc.GetByteCount(str); destBuffSize++)
                     {
-                        Console.WriteLine($"{encInfo.DisplayName} ({encInfo.Name})");
-                        Console.WriteLine("===");
-                        first = false;
+                        var encoderConvertRes = CompareEncodingEncoderConvert(enc, str, destBuffSize);
+                        PrintOnFailure(encInfo, encoderConvertRes, ref first);
                     }
 
-                    if (!encoderRes.Success)
+                    for(var destBuffSize = enc.GetMaxCharCount(1); destBuffSize <= str.Length; destBuffSize++)
                     {
-                        Console.WriteLine($"\t{encoderRes.Message}");
-                    }
-
-                    if (!encoderConvertRes.Success)
-                    {
-                        Console.WriteLine($"\t{encoderConvertRes.Message}");
-                    }
-
-                    if (!decoderRes.Success)
-                    {
-                        Console.WriteLine($"\t{decoderRes.Message}");
-                    }
-
-                    if (!decoderConvertRes.Success)
-                    {
-                        Console.WriteLine($"\t{decoderConvertRes.Message}");
+                        var decoderConvertRes = CompareEncodingDecoderConvert(enc, str, destBuffSize);
+                        PrintOnFailure(encInfo, decoderConvertRes, ref first);
                     }
                 }
             }
+
+            static void PrintOnFailure(EncodingInfo encInfo, (bool Success, string Message) result, ref bool first)
+            {
+                if (result.Success) return;
+
+                if (first)
+                {
+                    Console.WriteLine($"{encInfo.DisplayName} ({encInfo.Name})");
+                    Console.WriteLine("===");
+                    first = false;
+                }
+
+                Console.WriteLine($"\t{result.Message}");
+            }
         }
 
-        static (bool Success, string Message) CompareEncodingEncoderConvert(Encoding encoding, string text)
+        static (bool Success, string Message) CompareEncodingEncoderConvert(Encoding encoding, string text, int destBufferSize)
         {
             var encodingBytes = encoding.GetBytes(text);
             var encoder = encoding.GetEncoder();
 
             var chars = text.ToCharArray();
 
-            for(var buff = encoding.GetMaxByteCount(1); buff <= encoding.GetByteCount(text); buff++)
+            var sourceSpan = chars.AsSpan();
+            var destSpan = new byte[destBufferSize].AsSpan();
+            var encoderBytes = new List<byte>();
+
+            var completed = false;
+
+            // write everything in sourceSpan
+            while (!completed)
             {
-                var sourceSpan = chars.AsSpan();
-                var destSpan = new byte[buff].AsSpan();
-                var encoderBytes = new List<byte>();
+                var flush = sourceSpan.Length == 0;
+                encoder.Convert(sourceSpan, destSpan, flush, out var charsConsumed, out var bytesProduced, out completed);
+                encoderBytes.AddRange(destSpan.Slice(0, bytesProduced).ToArray());
 
-                var completed = false;
+                sourceSpan = sourceSpan.Slice(charsConsumed);
 
-                // write everything in sourceSpan
-                while (!completed)
+                if (charsConsumed == 0 && bytesProduced == 0 && flush)
                 {
-                    var flush = sourceSpan.Length == 0;
-                    encoder.Convert(sourceSpan, destSpan, flush, out var charsConsumed, out var bytesProduced, out completed);
-                    encoderBytes.AddRange(destSpan.Slice(0, bytesProduced).ToArray());
-
-                    sourceSpan = sourceSpan.Slice(charsConsumed);
-
-                    if (charsConsumed == 0 && bytesProduced == 0 && flush)
-                    {
-                        return (false, $@"Encoding Convert failure for buff={buff}, stopped making progress");
-                    }
+                    return (false, $@"Encoding Convert failure for destBufferSize={destBufferSize}, stopped making progress");
                 }
-
-                var eq = encodingBytes.SequenceEqual(encoderBytes);
-
-                if (eq)
-                {
-                    continue;
-                }
-
-                var encodingAsStr = encoding.GetString(encodingBytes);
-                var encoderAsStr = encoding.GetString(encoderBytes.ToArray());
-
-                return (false, $@"Encoding Convert failure for buff={buff} - {encodingBytes.Length}:""{encodingAsStr}"" vs {encoderBytes.Count}:""{encoderAsStr}""");
             }
 
-            return (true, null);
+            var eq = encodingBytes.SequenceEqual(encoderBytes);
+
+            if (eq)
+            {
+                return (true, null);
+            }
+
+            var encodingAsStr = encoding.GetString(encodingBytes);
+            var encoderAsStr = encoding.GetString(encoderBytes.ToArray());
+
+            return (false, $@"Encoding Convert failure for destBufferSize={destBufferSize} - {encodingBytes.Length}:""{encodingAsStr}"" vs {encoderBytes.Count}:""{encoderAsStr}""");
+
+
         }
 
         static (bool Success, string Message) CompareEncodingEncoder(Encoding encoding, string text)
@@ -195,7 +190,7 @@ namespace Latin1Repro
             return (true, null);
         }
 
-        static (bool Success, string Message) CompareEncodingDecoderConvert(Encoding encoding, string text)
+        static (bool Success, string Message) CompareEncodingDecoderConvert(Encoding encoding, string text, int destBufferSize)
         {
             var encodingBytes = encoding.GetBytes(text);
             var encodingStr = encoding.GetString(encodingBytes);
