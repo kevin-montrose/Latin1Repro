@@ -7,7 +7,7 @@ namespace Latin1Repro
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             // this is:
             //   utf-16
@@ -15,81 +15,55 @@ namespace Latin1Repro
             //   utf-32
             //   utf-32BE
             //   us-ascii
-            //   iso-8859-1   <- problem child is here
-            //   utf-7
+            //   iso-8859-1   <- problems with this one
+            //   utf-7        <- problems with this one
             //   utf-8 
             var availableEncodings = Encoding.GetEncodings();
 
-            var naughtyStrings =
-                 new[]
-                {
-                    @" ",
-                    @"",
-                    @"",
-                    @"",
-                    @"­؀؁؂؃؄؅؜۝܏᠎​‌‍‎‏‪‫‬‭‮⁠⁡⁢⁣⁤⁦⁧⁨⁩⁪⁫⁬⁭⁮⁯﻿￹￺￻𑂽𛲠𛲡𛲢𛲣𝅳𝅴𝅵𝅶𝅷𝅸𝅹𝅺󠀁󠀠󠀡󠀢󠀣󠀤󠀥󠀦󠀧󠀨󠀩󠀪󠀫󠀬󠀭󠀮󠀯󠀰󠀱󠀲󠀳󠀴󠀵󠀶󠀷󠀸󠀹󠀺󠀻󠀼󠀽󠀾󠀿󠁀󠁁󠁂󠁃󠁄󠁅󠁆󠁇󠁈󠁉󠁊󠁋󠁌󠁍󠁎󠁏󠁐󠁑󠁒󠁓󠁔󠁕󠁖󠁗󠁘󠁙󠁚󠁛󠁜󠁝󠁞󠁟󠁠󠁡󠁢󠁣󠁤󠁥󠁦󠁧󠁨󠁩󠁪󠁫󠁬󠁭󠁮󠁯󠁰󠁱󠁲󠁳󠁴󠁵󠁶󠁷󠁸󠁹󠁺󠁻󠁼󠁽󠁾󠁿",
-                    @"ЁЂЃЄЅІЇЈЉЊЋЌЍЎЏАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдежзийклмнопрстуфхцчшщъыьэюя",
-                    @"ด้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็ ด้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็ ด้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็็้้้้้้้้็็็็็้้้้้็็็็",
-                    @"田中さんにあげて下さい",
-                    @"パーティーへ行かないか",
-                    @"和製漢語",
-                    @"사회과학원 어학연구소",
-                    @"울란바토르",
-                    @"𠜎𠜱𠝹𠱓𠱸𠲖𠳏",
-                    @"表ポあA鷗ŒéＢ逍Üßªąñ丂㐀𠀀",
-                    @"Ⱥ",
-                    @"Ⱦ",
-                    @"ヽ༼ຈل͜ຈ༽ﾉ ヽ༼ຈل͜ຈ༽ﾉ",
-                    @"😍",
-                    @"✋🏿 💪🏿 👐🏿 🙌🏿 👏🏿 🙏🏿",
-                    @"🚾 🆒 🆓 🆕 🆖 🆗 🆙 🏧",
-                    @"0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟",
-                    @"🇺🇸🇷🇺🇸 🇦🇫🇦🇲🇸",
-                    @"בְּרֵאשִׁית, בָּרָא אֱלֹהִים, אֵת הַשָּׁמַיִם, וְאֵת הָאָרֶץ",
-                    @"הָיְתָהtestالصفحات التّحول",
-                    @"﷽",
-                    @"ﷺ",
-                    @"مُنَاقَشَةُ سُبُلِ اِسْتِخْدَامِ اللُّغَةِ فِي النُّظُمِ الْقَائِمَةِ وَفِيم يَخُصَّ التَّطْبِيقَاتُ الْحاسُوبِيَّةُ، ",
-                    @"˙ɐnbᴉlɐ ɐuƃɐɯ ǝɹolop ʇǝ ǝɹoqɐl ʇn ʇunpᴉpᴉɔuᴉ ɹodɯǝʇ poɯsnᴉǝ op pǝs 'ʇᴉlǝ ƃuᴉɔsᴉdᴉpɐ ɹnʇǝʇɔǝsuoɔ 'ʇǝɯɐ ʇᴉs ɹolop ɯnsdᴉ ɯǝɹo˥",
-                    @"00˙Ɩ$-",
-                    @"𝚃𝚑𝚎 𝚚𝚞𝚒𝚌𝚔 𝚋𝚛𝚘𝚠𝚗 𝚏𝚘𝚡 𝚓𝚞𝚖𝚙𝚜 𝚘𝚟𝚎𝚛 𝚝𝚑𝚎 𝚕𝚊𝚣𝚢 𝚍𝚘𝚐",
-                    @"⒯⒣⒠ ⒬⒰⒤⒞⒦ ⒝⒭⒪⒲⒩ ⒡⒪⒳ ⒥⒰⒨⒫⒮ ⒪⒱⒠⒭ ⒯⒣⒠ ⒧⒜⒵⒴ ⒟⒪⒢"
-                };
+            var utf7InfiteLoopStr = @"00˙Ɩ$-";
+            var latin1VariableLengthStr = @"0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟";
 
-            foreach (var encInfo in availableEncodings)
+            var utf8 = Encoding.GetEncoding("utf-8");
+            var utf7 = Encoding.GetEncoding("utf-7");
+            var latin1 = Encoding.GetEncoding("iso-8859-1");
+
+            CompareEncodingDecodingMethods(utf7, utf7InfiteLoopStr);
+            CompareEncodingDecodingMethods(latin1, latin1VariableLengthStr);
+
+            // use utf8 just to show correctness, no output expected
+            CompareEncodingDecodingMethods(utf8, utf7InfiteLoopStr);
+            CompareEncodingDecodingMethods(utf8, latin1VariableLengthStr);
+
+            static void CompareEncodingDecodingMethods(Encoding enc, string str)
             {
-                var enc = encInfo.GetEncoding();
                 var first = true;
 
-                foreach (var str in naughtyStrings)
+                var encoderRes = CompareEncodingEncoder(enc, str);
+                PrintOnFailure(enc, encoderRes, ref first);
+
+                var decoderRes = CompareEncodingDecoder(enc, str);
+                PrintOnFailure(enc, decoderRes, ref first);
+
+                for (var destBuffSize = enc.GetMaxByteCount(1); destBuffSize <= enc.GetByteCount(str); destBuffSize++)
                 {
-                    var encoderRes = CompareEncodingEncoder(enc, str);
-                    PrintOnFailure(encInfo, encoderRes, ref first);
+                    var encoderConvertRes = CompareEncodingEncoderConvert(enc, str, destBuffSize);
+                    PrintOnFailure(enc, encoderConvertRes, ref first);
+                }
 
-                    var decoderRes = CompareEncodingDecoder(enc, str);
-                    PrintOnFailure(encInfo, decoderRes, ref first);
-
-                    for(var destBuffSize = enc.GetMaxByteCount(1); destBuffSize <= enc.GetByteCount(str); destBuffSize++)
-                    {
-                        var encoderConvertRes = CompareEncodingEncoderConvert(enc, str, destBuffSize);
-                        PrintOnFailure(encInfo, encoderConvertRes, ref first);
-                    }
-
-                    for(var destBuffSize = enc.GetMaxCharCount(1); destBuffSize <= str.Length; destBuffSize++)
-                    {
-                        var decoderConvertRes = CompareEncodingDecoderConvert(enc, str, destBuffSize);
-                        PrintOnFailure(encInfo, decoderConvertRes, ref first);
-                    }
+                for (var destBuffSize = enc.GetMaxCharCount(1); destBuffSize <= str.Length; destBuffSize++)
+                {
+                    var decoderConvertRes = CompareEncodingDecoderConvert(enc, str, destBuffSize);
+                    PrintOnFailure(enc, decoderConvertRes, ref first);
                 }
             }
 
-            static void PrintOnFailure(EncodingInfo encInfo, (bool Success, string Message) result, ref bool first)
+            static void PrintOnFailure(Encoding enc, (bool Success, string Message) result, ref bool first)
             {
                 if (result.Success) return;
 
                 if (first)
                 {
-                    Console.WriteLine($"{encInfo.DisplayName} ({encInfo.Name})");
+                    Console.WriteLine($"{enc.EncodingName} ({enc.WebName})");
                     Console.WriteLine("===");
                     first = false;
                 }
