@@ -64,10 +64,11 @@ namespace Latin1Repro
                 foreach (var str in naughtyStrings)
                 {
                     var encoderRes = CompareEncodingEncoder(enc, str);
+                    var encoderConvertRes = CompareEncodingEncoderConvert(enc, str);
                     var decoderRes = CompareEncodingDecoder(enc, str);
                     var decoderConvertRes = CompareEncodingDecoderConvert(enc, str);
 
-                    if (encoderRes.Success && decoderRes.Success && decoderConvertRes.Success) continue;
+                    if (encoderRes.Success && encoderConvertRes.Success && decoderRes.Success && decoderConvertRes.Success) continue;
 
                     if (first)
                     {
@@ -81,6 +82,11 @@ namespace Latin1Repro
                         Console.WriteLine($"\t{encoderRes.Message}");
                     }
 
+                    if (!encoderConvertRes.Success)
+                    {
+                        Console.WriteLine($"\t{encoderConvertRes.Message}");
+                    }
+
                     if (!decoderRes.Success)
                     {
                         Console.WriteLine($"\t{decoderRes.Message}");
@@ -92,6 +98,52 @@ namespace Latin1Repro
                     }
                 }
             }
+        }
+
+        static (bool Success, string Message) CompareEncodingEncoderConvert(Encoding encoding, string text)
+        {
+            var encodingBytes = encoding.GetBytes(text);
+            var encoder = encoding.GetEncoder();
+
+            var chars = text.ToCharArray();
+
+            for(var buff = encoding.GetMaxByteCount(1); buff <= encoding.GetByteCount(text); buff++)
+            {
+                var sourceSpan = chars.AsSpan();
+                var destSpan = new byte[buff].AsSpan();
+                var encoderBytes = new List<byte>();
+
+                var completed = false;
+
+                // write everything in sourceSpan
+                while (!completed)
+                {
+                    var flush = sourceSpan.Length == 0;
+                    encoder.Convert(sourceSpan, destSpan, flush, out var charsConsumed, out var bytesProduced, out completed);
+                    encoderBytes.AddRange(destSpan.Slice(0, bytesProduced).ToArray());
+
+                    sourceSpan = sourceSpan.Slice(charsConsumed);
+
+                    if (charsConsumed == 0 && bytesProduced == 0 && flush)
+                    {
+                        return (false, $@"Encoding Convert failure for buff={buff}, stopped making progress");
+                    }
+                }
+
+                var eq = encodingBytes.SequenceEqual(encoderBytes);
+
+                if (eq)
+                {
+                    continue;
+                }
+
+                var encodingAsStr = encoding.GetString(encodingBytes);
+                var encoderAsStr = encoding.GetString(encoderBytes.ToArray());
+
+                return (false, $@"Encoding Convert failure for buff={buff} - {encodingBytes.Length}:""{encodingAsStr}"" vs {encoderBytes.Count}:""{encoderAsStr}""");
+            }
+
+            return (true, null);
         }
 
         static (bool Success, string Message) CompareEncodingEncoder(Encoding encoding, string text)
@@ -172,10 +224,8 @@ namespace Latin1Repro
                 // now flush
                 while (true)
                 {
-                    decoder.Convert(ReadOnlySpan<byte>.Empty, destSpan, true, out var consumedBytes, out var producedChars, out var complete);
+                    decoder.Convert(ReadOnlySpan<byte>.Empty, destSpan, true, out _, out var producedChars, out var complete);
                     decodedChars.AddRange(destSpan.Slice(0, producedChars).ToArray());
-
-                    sourceSpan = sourceSpan.Slice(consumedBytes);
 
                     if (complete) break;
                 }
