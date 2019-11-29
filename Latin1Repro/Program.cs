@@ -9,17 +9,6 @@ namespace Latin1Repro
     {
         static void Main()
         {
-            // this is:
-            //   utf-16
-            //   utf-16BE
-            //   utf-32
-            //   utf-32BE
-            //   us-ascii
-            //   iso-8859-1   <- problems with this one
-            //   utf-7        <- problems with this one
-            //   utf-8 
-            var availableEncodings = Encoding.GetEncodings();
-
             var utf7InfiteLoopStr = @"00˙Ɩ$-";
             var latin1VariableLengthStr = @"0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟";
 
